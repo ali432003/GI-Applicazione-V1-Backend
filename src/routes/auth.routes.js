@@ -18,7 +18,7 @@ const router = express.Router();
 // client/user - authentication routes
 router.post("/create-client", Auth, checkRole(["ADMIN"]), signup);
 router.post("/login-client", checkRole(["USER"]), login);           
-router.post("/logout-client", Auth, checkRole(["USER"]), logout);
+router.post("/logout-client", Auth, checkRole(["USER"]), logout); //optional
 
 // admin - authentication routes
 router.get("/users", Auth, checkRole(["ADMIN"]), getAllUsers);
@@ -27,7 +27,7 @@ router.post("/login-admin", loginAdmin);
 
 //forgot - password
 router.post("/verify-email", verifEmail)
-router.post("/forgot-pass", forgotPassword)
+router.patch("/update-pass", forgotPassword)
 
 
 export default router;
