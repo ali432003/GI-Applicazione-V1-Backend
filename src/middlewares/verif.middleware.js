@@ -1,14 +1,16 @@
 import "dotenv/config";
-import jwt from "jsonwebtoken";
-import { generateAndSaveToken } from "../lib/utils.js";
-import prisma from "../../prisma/prisma.js";
+
+/**
+ * This Middleware is used to check roles from the upcoming token after authentication and based on the given role allow access to the next service
+ * @param requiredRoles An array of roles e.g ["USER", "ADMIN"]
+ */
 
 export const checkRole = (requiredRoles) => {
   return async (req, res, next) => {
     try {
-      let role = req.user?.role; //ADMIN
+      let role = req.user?.role;
       if(!role){
-        role = "USER"
+        role = "USER"  //agr role nhi ara or ye wala middlware req pr lga wa hai then role by default USER hojayega
       }
       // console.log(role)
       if (!requiredRoles.includes(role)) {

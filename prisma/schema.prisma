@@ -13,27 +13,85 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  name      String
-  password  String
-  role      Role     @default(USER)
-  admin     Admin?   @relation(fields: [adminId], references: [id])
-  adminId   String?  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
 model Admin {
   id        String   @id @default(uuid())
   email     String   @unique
   name      String
   password  String
   role      Role     @default(ADMIN)
-  users     User[]   // one-to-many relations
+  clients   Client[] // one-to-many relations
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+
+model Client {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  password  String
+  number    String?
+  address   String?
+  state     String?
+  role      Role     @default(USER)
+  admin     Admin?   @relation(fields: [adminId], references: [id])
+  adminId   String?
+  orders    Order[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Order {
+  id                  String    @id @default(uuid())
+  jobDescription      String
+  projectManager      String
+  technicalManager    String
+  constructionManager String
+  address             String
+  state               State     @default(pending)
+  client              Client?   @relation(fields: [clientId], references: [id])
+  clientId            String?
+  supplier            Supplier? @relation(fields: [supplierId], references: [id])
+  supplierId          String?
+  lat                 Float?
+  lng                 Float?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+}
+
+model Supplier {
+  id          String   @id @default(uuid())
+  companyName String
+  VATNumber   String
+  email       String   @unique
+  phone       String
+  address     String
+  orders      Order[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Employee {
+  id        String   @id @default(uuid())
+  name      String
+  number    String
+  email     String
+  address   String
+  role      EmpRole  @default(Training)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum State {
+  pending
+  ongoing
+  completed
+}
+
+enum EmpRole {
+  Training
+  Unified_Labour_Notification
+  Fitness
 }
 
 enum Role {

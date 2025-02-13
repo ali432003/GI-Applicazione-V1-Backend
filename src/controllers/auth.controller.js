@@ -1,9 +1,10 @@
+import "dotenv/config";
 import prisma from "../../prisma/prisma.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { generateAndSaveToken } from "../lib/utils.js";
 
-const { sign } = jwt;
+const { sign, verify } = jwt;
 
 export const signup = async (req, res) => {
   try {
@@ -12,7 +13,7 @@ export const signup = async (req, res) => {
     if (!name || !email || !password) {
       return res.status(400).json({ error: "All fields are required" });
     }
-    const exist = await prisma.user.findUnique({ where: { email: email } });
+    const exist = await prisma.client.findUnique({ where: { email: email } });
     if (exist) {
       return res.status(400).json({ error: "User already exists" });
     }
@@ -22,7 +23,7 @@ export const signup = async (req, res) => {
         .json({ error: "Password must be at least 6 characters" });
     }
     const hash = await bcrypt.hash(password, 10);
-    const user = await prisma.user.create({
+    const user = await prisma.client.create({
       data: {
         name,
         email,
@@ -45,7 +46,7 @@ export const login = async (req, res) => {
     if (!email || !password) {
       return res.status(400).json({ error: "All fields are required" });
     }
-    const user = await prisma.user.findUnique({ where: { email: email } });
+    const user = await prisma.client.findUnique({ where: { email: email } });
     if (!user) return res.status(400).json({ message: "Invalid Email" });
     const match = await bcrypt.compare(password, user.password);
     if (!match) {
@@ -70,7 +71,7 @@ export const logout = async (req, res) => {
 export const getAllUsers = async (req, res) => {
   try {
     const { id } = req.user;
-    const users = await prisma.user.findMany({ where: { adminId: id } });
+    const users = await prisma.client.findMany({ where: { adminId: id } });
     if (!users) {
       return res.status(404).json({ message: "No user found", data: [] });
     }
@@ -117,6 +118,62 @@ export const loginAdmin = async (req, res) => {
     return res
       .status(200)
       .json({ message: "Admin logged in Successfully", data: user });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+export const verifEmail = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) throw new Error("Email is Required!");
+    const verify = await prisma.client.findUnique({ where: { email: email } });
+    if (!verify) {
+      return res
+        .status(401)
+        .json({ message: "Email not found", status: false });
+    }
+    const verfToken = sign(
+      { role: verify.role, id: verify.id },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "1m",
+      }
+    );
+    res.cookie("email-verf-token", verfToken, { httpOnly: false });
+    return res
+      .status(200)
+      .json({ message: "Email found sucessfuly", status: true });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+export const forgotPassword = async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+    if (!token || !newPassword) {
+      return res.status(401).json({ message: "Missing Required Fields" });
+    }
+    if (token) {
+      const verf = verify(token, process.env.JWT_SECRET);
+      if (!verf) {
+        return res
+          .status(401)
+          .json({ message: "Verification Expired", status: false });
+      }
+      const hash = await bcrypt.hash(newPassword, 10);
+      await prisma.client.update({
+        where: { id: verf.id },
+        data: { password: hash },
+      });
+      return res
+        .status(200)
+        .json({ message: "password updated successfully", status: true });
+    }
+    return res
+      .status(401)
+      .json({ message: "Invalid request token not found", status: false });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
